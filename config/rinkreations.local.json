@@ -1,0 +1,50 @@
+{
+  "id": "rinkreations",
+  "name": "RinkReations",
+  "environment": "local",
+  "version": "1",
+  "publicOrigin": "http://127.0.0.1:4312",
+  "basePath": "/blog",
+  "port": 4312,
+  "defaultAuthor": {
+    "type": "Organization",
+    "name": "RinkReations"
+  },
+  "publisher": {
+    "type": "Organization",
+    "name": "RinkReations"
+  },
+  "description": "Articles from RinkReations.",
+  "theme": {
+    "accent": "#7143a8",
+    "ink": "#2a203b",
+    "paper": "#faf8fd"
+  },
+  "navigation": [
+    {
+      "label": "Articles",
+      "href": "/blog/"
+    }
+  ],
+  "footer": {
+    "text": "RinkReations \u00b7 Local preview",
+    "links": []
+  },
+  "voices": [
+    {
+      "id": "heart",
+      "label": "Heart \u00b7 professional stock voice",
+      "kind": "stock",
+      "approved": true,
+      "default": true
+    },
+    {
+      "id": "michael",
+      "label": "Michael \u00b7 stock narrator",
+      "kind": "stock",
+      "approved": true,
+      "default": false
+    }
+  ],
+  "previewNotice": "Local RinkReations preview. The production domain, author identity, and brand assets remain unverified."
+}

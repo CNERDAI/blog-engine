@@ -1,0 +1,5 @@
+{
+  "cnerd": { "url": "http://127.0.0.1:4310/blog", "tokenEnv": "CNERD_ENGINE_TOKEN" },
+  "landworkspro": { "url": "http://127.0.0.1:4311/blog", "tokenEnv": "LANDWORKSPRO_ENGINE_TOKEN" },
+  "rinkreations": { "url": "http://127.0.0.1:4312/blog", "tokenEnv": "RINKREATIONS_ENGINE_TOKEN" }
+}

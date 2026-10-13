@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
+const temp=mkdtempSync(join(tmpdir(),'engine-presentation-'));
+process.env.DATA_DIR=join(temp,'data');
+const {inspectImage,ensureVariants,enrichImageHtml}=await import('../src/media.mjs');
+const {saveBlog,uploadBlogAsset,blogAsset,getBlog}=await import('../src/blog.mjs');
+const {prepareSocial,socialStatus}=await import('../src/social.mjs');
+const {db}=await import('../src/db.mjs');
+const imagePath=join(temp,'input.jpg');
+const generated=spawnSync('ffmpeg',['-v','error','-f','lavfi','-i','testsrc2=size=1600x900:rate=1','-frames:v','1','-q:v','3','-y',imagePath]);
+assert.equal(generated.status,0,generated.stderr?.toString());
+const image=readFileSync(imagePath);
+test.after(()=>{db.close();rmSync(temp,{recursive:true,force:true});});
+test('images are decoded, dimensioned, genuinely resized and cached',()=>{
+  assert.deepEqual(inspectImage(image),{width:1600,height:900,mime:'image/jpeg',format:'jpeg'});
+  assert.throws(()=>inspectImage(Buffer.from('not an image')));
+  assert.throws(()=>inspectImage(Buffer.from([255,216,255,0,0])));
+  const asset={id:'a'.repeat(32),path:imagePath,kind:'image'};
+  const result=ensureVariants(asset);
+  assert.deepEqual(result.variants.map(variant=>variant.width),[640,1280,1600]);
+  for(const variant of result.variants){const actual=inspectImage(readFileSync(variant.path));assert.equal(actual.width,variant.width);assert.equal(actual.height,variant.height);}
+  assert.deepEqual(ensureVariants(asset),result);
+  const html=enrichImageHtml(`<img src="/blog-media/${asset.id}" alt="Test pattern">`,()=>asset);
+  assert.match(html,/width="1600" height="900"/);
+  assert.match(html,/\/blog\/media\/a{32}\/variants\/640.jpg 640w/);
+  assert.match(enrichImageHtml(`<img src="/blog-media/${asset.id}" alt="Test pattern">`,()=>asset,{privatePreview:true}),/\/blog\/api\/admin\/blog\/assets\//);
+});
+test('social package exports valid crops and ZIP; detects stale and preserves manual captions',async()=>{
+  let record=saveBlog('social-fixture',{slug:'social-fixture',title:'Practical social export workflow',summary:'A complete practical summary of the workflow for exporting usable social assets.',author:'Michael Kintner',topics:['Testing'],blocks:[{id:'b_abcdefgh',type:'text',heading:'Test',body:'A source article for isolated presentation checks.'}]},0);
+  const asset=uploadBlogAsset(record.slug,{kind:'image',visibility:'public',name:'fixture.jpg'},image);
+  record=saveBlog(record.slug,{...record.draft,heroImage:asset.path,heroAlt:'A colorful geometric test pattern'},record.revision);
+  let pack=await prepareSocial(record,{expectedRevision:record.revision,idempotencyKey:'first-pack',imageAlt:'A colorful geometric test pattern',captions:{facebook:'Owner-written caption. Keep this exact wording.'}});
+  assert.equal(pack.state,'ready');
+  assert.equal(pack.posting.state,'unavailable');
+  assert.equal(pack.images.length,4);
+  for(const file of pack.files.filter(file=>file.mime==='image/jpeg')){const actual=inspectImage(readFileSync(file.path));assert.equal(actual.width,file.width);assert.equal(actual.height,file.height);}
+  const zip=spawnSync('unzip',['-l',pack.zipPath],{encoding:'utf8'});
+  assert.equal(zip.status,0);assert.match(zip.stdout,/manifest.json/);assert.match(zip.stdout,/cnerd-social-fixture-instagram.jpg/);
+  assert.equal(blogAsset(asset.id),null,'Draft image remains private even after social preparation.');
+  const retry=await prepareSocial(record,{expectedRevision:record.revision,idempotencyKey:'first-pack',imageAlt:'A colorful geometric test pattern',captions:{facebook:'Owner-written caption. Keep this exact wording.'}});
+  assert.equal(retry.id,pack.id);
+  await assert.rejects(prepareSocial(record,{expectedRevision:record.revision,idempotencyKey:'first-pack',imageAlt:'Different image description'}),{status:409});
+  record=saveBlog(record.slug,{...record.draft,title:'Revised practical social export workflow'},record.revision);
+  assert.equal(socialStatus(record).state,'stale');
+  pack=await prepareSocial(record,{expectedRevision:record.revision,imageAlt:'A colorful geometric test pattern'});
+  assert.equal(pack.captions.facebook.text,'Owner-written caption. Keep this exact wording.');assert.equal(pack.captions.facebook.manual,true);
+  assert.equal(pack.sourceRevision,record.revision);
+  writeFileSync(blogAsset(asset.id,true).path,Buffer.from('corrupted'));
+  assert.equal(socialStatus(record).state,'stale');
+});

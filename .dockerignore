@@ -1,0 +1,8 @@
+node_modules
+private*
+research
+releases
+.env*
+dist
+tests
+frontend

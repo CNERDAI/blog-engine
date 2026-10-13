@@ -1,0 +1,60 @@
+{
+  "id": "cnerd",
+  "name": "CNERD AI",
+  "environment": "local",
+  "version": "1",
+  "publicOrigin": "http://127.0.0.1:4310",
+  "basePath": "/blog",
+  "port": 4310,
+  "defaultAuthor": {
+    "type": "Person",
+    "name": "Michael Kintner"
+  },
+  "publisher": {
+    "type": "Organization",
+    "name": "CNERD AI"
+  },
+  "description": "Research, field notes, prompts, and practical workflows for people building useful things with AI.",
+  "theme": {
+    "accent": "#205caa",
+    "ink": "#15243a",
+    "paper": "#f8fafc"
+  },
+  "navigation": [
+    {
+      "label": "Articles",
+      "href": "/blog/"
+    }
+  ],
+  "footer": {
+    "text": "CNERD AI \u00b7 Practical work with AI",
+    "links": []
+  },
+  "voices": [
+    {
+      "id": "heart",
+      "label": "Heart \u00b7 professional stock voice",
+      "kind": "stock",
+      "approved": true,
+      "default": true
+    },
+    {
+      "id": "michael",
+      "label": "Michael \u00b7 stock narrator",
+      "kind": "stock",
+      "approved": true,
+      "default": false
+    },
+    {
+      "id": "mike60s",
+      "label": "Mike in the 60s \u00b7 ElevenLabs saved voice",
+      "kind": "external-saved",
+      "approved": true,
+      "default": false
+    }
+  ],
+  "pronunciations": {
+    "CNERD": "see nerd",
+    "Olean": "Olean"
+  }
+}

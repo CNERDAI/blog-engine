@@ -1,0 +1,50 @@
+{
+  "id": "landworkspro",
+  "name": "LandworksPro",
+  "environment": "local",
+  "version": "1",
+  "publicOrigin": "http://127.0.0.1:4311",
+  "basePath": "/blog",
+  "port": 4311,
+  "defaultAuthor": {
+    "type": "Organization",
+    "name": "LandworksPro"
+  },
+  "publisher": {
+    "type": "Organization",
+    "name": "LandworksPro"
+  },
+  "description": "Articles from LandworksPro.",
+  "theme": {
+    "accent": "#246442",
+    "ink": "#18332a",
+    "paper": "#f7faf6"
+  },
+  "navigation": [
+    {
+      "label": "Articles",
+      "href": "/blog/"
+    }
+  ],
+  "footer": {
+    "text": "LandworksPro \u00b7 Local preview",
+    "links": []
+  },
+  "voices": [
+    {
+      "id": "heart",
+      "label": "Heart \u00b7 professional stock voice",
+      "kind": "stock",
+      "approved": true,
+      "default": true
+    },
+    {
+      "id": "michael",
+      "label": "Michael \u00b7 stock narrator",
+      "kind": "stock",
+      "approved": true,
+      "default": false
+    }
+  ],
+  "previewNotice": "Local LandworksPro preview. Production hosting, author identity, and brand assets await owner verification."
+}

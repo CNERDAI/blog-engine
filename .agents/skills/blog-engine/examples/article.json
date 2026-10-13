@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 2,
+  "slug": "focused-practical-article",
+  "title": "Turn meeting notes into a clear follow-up",
+  "summary": "A short, reviewable way to turn your own meeting notes into a useful follow-up.",
+  "author": "Example author",
+  "topics": [
+    "Practical AI"
+  ],
+  "heroImage": "",
+  "seoTitle": "Turn meeting notes into a clear follow-up",
+  "seoDescription": "Organize supplied meeting notes, check the details, and prepare a clear follow-up for review.",
+  "bodyDoc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Start with notes from a meeting you attended. Use only the details you can verify, and decide who needs the follow-up."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Organize the next steps"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Group the notes into decisions, open questions, and next steps. Check the owner and date for each action. Leave missing details as questions rather than guessing."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Review before sending"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Read the draft against your original notes. Confirm names, commitments, and recipients before sharing it."
+          }
+        ]
+      }
+    ]
+  },
+  "heroAlt": ""
+}
