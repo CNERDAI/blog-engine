@@ -33,16 +33,19 @@ function login(message = '') {
   clear();
   host.append(node('h1', config.name + ' · Articles'));
   const form = node('form', '', { class: 'blog-engine-login' });
-  const label = node('label', 'Owner password');
+  const usernameLabel = node('label', 'Username');
+  const username = node('input', '', { type: 'text', autocomplete: 'username', required: '', name: 'username', value: 'owner' });
+  usernameLabel.append(username);
+  const label = node('label', 'Password');
   const input = node('input', '', { type: 'password', autocomplete: 'current-password', required: '', name: 'password' });
   label.append(input);
   const submit = node('button', 'Sign in', { type: 'submit' });
   const feedback = status(message, form);
-  form.prepend(label, submit);
+  form.prepend(usernameLabel, label, submit);
   form.onsubmit = async event => {
     event.preventDefault();
     submit.disabled = true;
-    try { await api('auth', 'POST', { password: input.value }); input.value = ''; await list(); }
+    try { await api('auth', 'POST', { username: username.value, password: input.value }); input.value = ''; await list(); }
     catch (error) { feedback.textContent = error.message; submit.disabled = false; }
   };
   host.append(form);
@@ -52,6 +55,16 @@ async function edit(record) {
   const editor = await import(path('assets/editor/blog-editor.js'));
   cleanup = editor.mountBlog(host, record, { onBack: () => void list() });
   history.replaceState(null, '', path('admin/') + (record ? '?article=' + encodeURIComponent(record.id) : ''));
+}
+async function showMediaLibrary(){
+  clear();
+  history.replaceState(null,'',path('admin/')+'?media=1');
+  const back=node('button','← Articles',{type:'button'});
+  back.onclick=()=>{history.replaceState(null,'',path('admin/'));void list();};
+  host.append(back);
+  const mount=node('div','');host.append(mount);
+  try{const module=await import(path('assets/editor/blog-editor.js'));cleanup=module.mountMediaLibrary(mount);}
+  catch(error){status(error.message);}
 }
 async function list() {
   try {
@@ -67,7 +80,10 @@ async function list() {
       catch (error) { status(error.message); }
     };
     const library = node('a', 'View public articles ↗', { href: path(''), target: '_blank', rel: 'noopener noreferrer' });
-    actions.append(create, library, logout);
+    const media=node('button','Media library',{type:'button'});media.onclick=()=>void showMediaLibrary();
+    actions.append(create,media,library);
+    if(config.brandId==='cnerd')actions.append(node('a','Website Admin ↗',{href:'/admin',target:'_blank',rel:'noopener noreferrer'}));
+    actions.append(logout);
     host.append(actions);
     if (!articles.length) status('No articles yet. Create a private draft to begin.');
     const rows = node('ul', '', { class: 'blog-engine-article-list' });
@@ -84,6 +100,7 @@ async function list() {
     }
     host.append(rows);
     const articleId = new URL(location.href).searchParams.get('article');
+    if(new URL(location.href).searchParams.get('media')==='1'){await showMediaLibrary();return;}
     if (articleId) {
       const item = articles.find(article => article.id === articleId);
       if (item) await edit(await api('admin/blog/' + encodeURIComponent(item.slug)));

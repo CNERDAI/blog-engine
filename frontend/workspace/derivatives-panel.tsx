@@ -68,10 +68,15 @@ export function DerivativesPanel({ kind, session }: { kind: 'social' | 'audio'; 
       {pack?.images?.map((image: any) => <figure key={image.destination}><img src={mountedUrl(image.url)} alt={image.alt || ''} width={image.width} height={image.height} /><figcaption>{image.destination} · {image.width} × {image.height}</figcaption></figure>)}
       {pack?.exportUrl && <a href={mountedUrl(pack.exportUrl)}>Download social ZIP</a>}
     </> : <>
-      <p>Audio: {status?.audio?.state || 'not requested'}</p>
-      <p>{status?.audio?.producer?.reason || 'Playback uses saved recordings. Generating narration requires a configured local producer.'}</p>
+      <h3>Saved recordings</h3>
+      <p>{recordings?.recordings?.length ? `${recordings.recordings.length} saved recording${recordings.recordings.length === 1 ? '' : 's'}. Listening plays saved audio without contacting VoiceStudio.` : 'No saved recordings for this article.'}</p>
+      <h3>VoiceStudio connection</h3>
+      <p>{status?.audio?.producer?.available ? 'A local producer is connected.' : 'Manual export and import are available. Automatic VoiceStudio generation is not connected.'}</p>
+      <p>Previous VoiceStudio/Kokoro recordings use stock Heart and Michael voices. They are not a custom Mike voice.</p>
+      <p>Workflow: Save the article, export its spoken source, produce an approved voice in VoiceStudio, prepare measured timing for the final MP3, import both files, preview, and activate after the matching content is published.</p>
+      {status?.audio?.jobs?.length > 0 && <p>Latest production request: {status.audio.state}. {status.audio.producer?.reason}</p>}
       <label>Approved voice<select value={voiceId} onChange={event => setVoiceId(event.target.value)}><option value="">Select voice</option>{engineConfig().approvedVoices?.map(voice => <option key={voice.id} value={voice.id}>{voice.name || voice.id}</option>)}</select></label>
-      <button disabled={pending || session.dirty || !voiceId} onClick={() => run(async () => {
+      <button disabled={pending || session.dirty || !voiceId || !status?.audio?.producer?.available} onClick={() => run(async () => {
         const value = await request<any>('admin/blog/' + record.slug + '/narration', 'POST', { expectedRevision: record.revision, voiceId, idempotencyKey: 'editor-audio:' + crypto.randomUUID() });
         setFeedback(value.message || 'Narration request saved. Check producer status.');
         await refresh();
@@ -83,7 +88,7 @@ export function DerivativesPanel({ kind, session }: { kind: 'social' | 'audio'; 
         await request('admin/narration/' + record.id + '/import', 'POST', { manifest: JSON.parse(await manifest!.text()), audioBase64: await audioBase64(audio!) });
         setFeedback('Recording imported for review.'); await refresh();
       })}>Import saved recording</button>
-      {recordings?.recordings?.map((recording: any) => <article key={recording.id}><h3>{recording.label || recording.voiceId}</h3><p>{recording.active ? 'Active' : recording.stale ? 'Stale source' : 'Ready for review'}</p>{!recording.active && recording.sourceFingerprint !== recordings.publishedSourceFingerprint && <p>Publish the matching content before activating this recording.</p>}<audio controls preload="none" src={mountedUrl(recording.audioUrl || apiPath('admin/narration/' + recording.id + '/audio'))} /><button disabled={pending || (!recording.active && (recording.stale || recording.sourceFingerprint !== recordings.publishedSourceFingerprint))} onClick={() => run(async () => {
+      {recordings?.recordings?.map((recording: any) => <article key={recording.id}><h3>{recording.label || recording.voiceId}</h3><p>{recording.active ? 'Active' : recording.stale ? 'Stale source' : 'Ready for review'} · {Math.floor(Number(recording.duration || 0) / 60)}:{String(Math.round(Number(recording.duration || 0) % 60)).padStart(2, '0')}</p>{recording.voiceId === 'mike60s' && <p>Source: ElevenLabs saved recording.</p>}{!recording.active && recording.sourceFingerprint !== recordings.publishedSourceFingerprint && <p>Publish the matching content before activating this recording.</p>}<audio controls preload="none" src={mountedUrl(recording.audioUrl || apiPath('admin/narration/' + recording.id + '/audio'))} /><button disabled={pending || (!recording.active && (recording.stale || recording.sourceFingerprint !== recordings.publishedSourceFingerprint))} onClick={() => run(async () => {
         await request('admin/narration/' + recording.id + '/activate', 'POST', { active: !recording.active, expectedSourceFingerprint: recording.sourceFingerprint, expectedActiveId: recordings.recordings.find((item: any) => item.active && item.voiceId === recording.voiceId)?.id || null });
         setFeedback(recording.active ? 'Recording deactivated.' : 'Recording activated.'); await refresh();
       })}>{recording.active ? 'Deactivate' : 'Activate for published article'}</button></article>)}

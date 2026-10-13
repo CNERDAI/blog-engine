@@ -1,7 +1,7 @@
 import {test,after} from 'node:test';import assert from 'node:assert/strict';import {mkdtempSync,rmSync,readFileSync,readdirSync,unlinkSync,writeFileSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {spawnSync} from 'node:child_process';
 const dir=mkdtempSync(join(tmpdir(),'cnerd-narration-test-'));process.env.DATA_DIR=dir;
 const config=JSON.parse(readFileSync(new URL('../config/cnerd.local.json',import.meta.url),'utf8'));
-config.voices=[{id:'heart',label:'Heart · professional voice',approved:true,kind:'stock'},{id:'michael',label:'Michael · stock narrator',approved:true,kind:'stock'},{id:'mike60s',label:'Mike in the 60s · ElevenLabs',approved:true,kind:'provider'}];
+config.voices=[{id:'heart',label:'Heart · professional voice',approved:true,kind:'stock'},{id:'michael',label:'Michael · stock narrator',approved:true,kind:'stock'},{id:'mike60s',label:'Mike',approved:true,kind:'provider'}];
 config.pronunciations={CNERD:'see nerd',Olean:'Olean'};
 process.env.BRAND_CONFIG=join(dir,'brand.json');writeFileSync(process.env.BRAND_CONFIG,JSON.stringify(config));
 const {saveBlog,publishBlog,getBlog,archiveBlog}=await import('../src/blog.mjs');const {db}=await import('../src/db.mjs');const n=await import('../src/narration.mjs');const {checksum,validateManifest}=await import('../src/narration-validation.mjs');

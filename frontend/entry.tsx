@@ -1,5 +1,7 @@
 import { adminPath } from './paths';
 import { DerivativesPanel } from './workspace/derivatives-panel';
+import {MediaLibrary,type LibraryItem} from './workspace/media-library';
+import {request} from './workspace/use-article-session';
 import {ArticleDate} from './workspace/article-date';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -53,6 +55,8 @@ function Workspace({ record, onBack, host }: WorkspaceProps) {
   const session = useArticleSession(record);
   const preview = useArticlePreview(session);
   const [settings, setSettings] = useState(false);
+  const [library,setLibrary]=useState<'body'|'featured'|'social'|null>(null);
+  const insertionPoint=useRef<number|null>(null);
   const [derivatives, setDerivatives] = useState<"social" | "audio" | null>(null);
   const [outline, setOutline] = useState(false);
   const [wide, setWide] = useState(false);
@@ -121,6 +125,19 @@ function Workspace({ record, onBack, host }: WorkspaceProps) {
       history.replaceState(null, "", adminPath());
       onBack();
     }
+  };
+  const openLibrary=(mode:'body'|'featured'|'social')=>{if(mode==='body'&&session.tab!=='content'){session.setStatus('Switch to Content before inserting public images.');return;}insertionPoint.current=session.editor.current?.state.selection.from??null;setSettings(false);setLibrary(mode);};
+  const chooseLibrary=async(items:LibraryItem[])=>{
+    if(!session.saved.current)throw Error('Save the article before selecting media.');
+    const record=session.saved.current;
+    const paths:string[]=[];
+    for(const item of items){const value=await request<{path:string}>('admin/blog/'+record.slug+'/use-media','POST',{id:item.id,expectedRevision:record.revision});paths.push(value.path);}
+    if(library==='featured')session.mark({heroImage:paths[0]});
+    else if(library==='social')session.mark({socialImage:paths[0]});
+    else {const editor=session.editor.current;if(!editor||editor.isDestroyed)throw Error('The article editor is no longer open.');
+      const position=Math.min(insertionPoint.current??editor.state.selection.from,editor.state.doc.content.size);
+      editor.chain().focus().insertContentAt(position,paths.map((path,index)=>({type:'image',attrs:{src:path,alt:items[index].name}}))).run();}
+    setLibrary(null);
   };
   const navigate = (entry: OutlineEntry) => {
     setOutline(false);
@@ -206,6 +223,7 @@ function Workspace({ record, onBack, host }: WorkspaceProps) {
         onSettings={() => setSettings(true)}
         onSocial={() => setDerivatives("social")}
         onAudio={() => setDerivatives("audio")}
+        onLibrary={() => openLibrary('body')}
         onOutline={() =>
           wide ? setOutlineHidden(!outlineHidden) : setOutline(true)
         }
@@ -281,9 +299,10 @@ function Workspace({ record, onBack, host }: WorkspaceProps) {
       {derivatives && <Drawer title={derivatives === "social" ? "Social" : "Audio"} onClose={() => setDerivatives(null)}><DerivativesPanel kind={derivatives} session={session} /></Drawer>}
       {settings && (
         <Drawer title="Article settings" onClose={() => setSettings(false)}>
-          <ArticleSettings session={session} />
+          <ArticleSettings session={session} onLibrary={openLibrary} />
         </Drawer>
       )}
+      {library&&<Drawer title="Media library" onClose={()=>setLibrary(null)}><MediaLibrary slug={session.saved.current?.slug} mode={library} onSelected={chooseLibrary} uploadFile={file=>session.upload(file,'src',true)}/></Drawer>}
       {outline && (
         <Drawer title="Article outline" onClose={() => setOutline(false)}>
           <ArticleOutline entries={entries} onNavigate={navigate} />
@@ -364,4 +383,9 @@ export function mountBlog(
     />,
   );
   return () => root.unmount();
+}
+export function mountMediaLibrary(host:HTMLElement){
+  const root=createRoot(host);
+  root.render(<MediaLibrary/>);
+  return ()=>root.unmount();
 }

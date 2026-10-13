@@ -12,8 +12,11 @@ import {enrichImageHtml, ensureVariants} from './media.mjs';
 import {prepareSocial, socialStatus, getSocialPack, socialPresets} from './social.mjs';
 import {narrationExport, importNarration, publicNarrations, narrationAsset, adminNarrationRoutes, requestNarration, narrationJobStatus, narrationCapabilities, narrationJobPackage, importProducedNarration} from './narration.mjs';
 import {esc, assetReferences} from './blog-document.mjs';
+import {mediaLibrary,useMedia,uploadLibraryImage} from './media-library.mjs';
 
-const version = '0.1.0';
+const version = '0.1.2';
+const hostSession = process.env.CNERD_HOST_SESSION === '1';
+if (hostSession && brand.id !== 'cnerd') throw new Error('CNERD host sessions require the CNERD installation.');
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || new URL(brand.publicOrigin).port || 4310);
 const cookieName = `blog_${brand.id.replace(/-/g, '_')}_session`;
@@ -45,9 +48,14 @@ function rate(req, operation, max, minutes) {
   if (++row.count > max) throw fail('Too many requests. Try again later.', 429);
 }
 function session(req) {
-  const token = String(req.headers.cookie || '').split(';').map(v => v.trim()).find(v => v.startsWith(cookieName + '='))?.slice(cookieName.length + 1);
-  if (!/^[a-f0-9]{64}$/.test(token || '')) return null;
-  return db.prepare('SELECT * FROM sessions WHERE token_hash=? AND expires>?').get(hash(token), Date.now());
+  const cookies = new Map(String(req.headers.cookie || '').split(';').map(value => value.trim().split('=')));
+  for (const name of [cookieName, ...(hostSession ? ['cnerd_session'] : [])]) {
+    const token = cookies.get(name);
+    if (!/^[a-f0-9]{64}$/.test(token || '')) continue;
+    const current = db.prepare('SELECT * FROM sessions WHERE token_hash=? AND expires>?').get(hash(token), Date.now());
+    if (current) return current;
+  }
+  return null;
 }
 function requireSession(req) { if (!session(req)) throw fail('Sign in to manage this blog.', 401); }
 function originCheck(req) { if (isMutation(req) && req.headers.origin !== brand.publicOrigin) throw fail('Request origin did not match this website.', 403); }
@@ -162,7 +170,7 @@ async function handle(req, res) {
   if (path === mounted('/api/auth')) {
     if (req.method === 'GET') return json(res, 200, {authenticated: !!session(req), brand: brand.id});
     originCheck(req);
-    if (req.method === 'DELETE') { const current = session(req); if (current) db.prepare('DELETE FROM sessions WHERE token_hash=?').run(current.token_hash); res.setHeader('Set-Cookie', `${cookieName}=; Path=${mounted('/')}; HttpOnly; SameSite=Lax; Max-Age=0`); return json(res, 200, {ok:true}); }
+    if (req.method === 'DELETE') { const current = session(req); if (current) db.prepare('DELETE FROM sessions WHERE token_hash=?').run(current.token_hash); res.setHeader('Set-Cookie', [`${cookieName}=; Path=${mounted('/')}; HttpOnly; SameSite=Lax; Max-Age=0`, ...(hostSession ? ['cnerd_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0; Secure'] : [])]); return json(res, 200, {ok:true}); }
     if (req.method !== 'POST') throw fail('Method not allowed.', 405);
     rate(req, 'login', 8, 15);
     const body = await readBody(req, 4096), user = db.prepare('SELECT * FROM users WHERE username=?').get(body.username || 'owner');
@@ -207,7 +215,14 @@ async function handle(req, res) {
   if (path === mounted('/admin/') || path === mounted('/admin')) return page(req,res,{title:brand.name+' Blog editor',description:'Manage your articles.',body:'<div class="wrap" id="blog-manager"></div>',path:mounted('/admin/'),admin:true,robots:'noindex,nofollow'});
   if (path.startsWith(mounted('/api/admin/'))) {
     requireSession(req); originCheck(req);
-    if (path===mounted('/api/admin/media')) return json(res,200,[]);
+    if (path===mounted('/api/admin/media')){
+      if(req.method==='POST'){rate(req,'library-upload',30,10);return json(res,200,uploadLibraryImage(await readBody(req,7200000)));}
+      if(req.method==='GET')return json(res,200,mediaLibrary({privateView:false}).items);
+      throw fail('Method not allowed.',405);
+    }
+    if (path===mounted('/api/admin/media-library')&&req.method==='GET')return json(res,200,mediaLibrary(Object.fromEntries(url.searchParams)));
+    const useMediaRoute=path.match(new RegExp('^'+mounted('/api/admin/blog/')+'([a-z0-9-]+)/use-media$'));
+    if(useMediaRoute&&req.method==='POST'){rate(req,'blog-use-media',120,10);return json(res,200,useMedia(useMediaRoute[1],await readBody(req,4096)));}
     const socialFile=path.match(new RegExp('^'+mounted('/api/admin/blog/')+'([a-z0-9-]+)/social/files/([a-zA-Z0-9._-]+)$'));
     if(socialFile){const record=getBlog(socialFile[1]),pack=record&&getSocialPack(record),file=pack?.files.find(f=>f.name===socialFile[2]);if(!file)throw fail('Not found.',404);return fileResponse(req,res,file.path,file.mime,{privateFile:true});}
     if (path===mounted('/api/admin/blog-preview') && req.method==='POST') {
@@ -230,6 +245,8 @@ async function handle(req, res) {
     if(await adminBlogRoutes(req,res,internal,{readBody,readRaw,json,rate}))return;
     throw fail('Not found.',404);
   }
+  const libraryImage=path.match(new RegExp('^'+mounted('/library-media/')+'([a-f0-9]{32}\\.(?:png|jpg|webp))$'));
+  if(libraryImage){const row=db.prepare('SELECT mime,path FROM media WHERE path=?').get(path);if(!row)throw fail('Not found.',404);return fileResponse(req,res,resolve(process.env.DATA_DIR||'private','media',libraryImage[1]),row.mime);}
   const discover=path.match(new RegExp('^'+mounted('/api/narration/')+'([a-z0-9-]+)$'));
   if(discover&&req.method==='GET'){const result=publicNarrations(discover[1]);if(!result)throw fail('Not found.',404);return json(res,200,result);}
   const audio=path.match(new RegExp('^(?:'+mounted('/narration/')+'|/blog-narration/)([a-f0-9-]{32,36})/(audio|manifest)$'));

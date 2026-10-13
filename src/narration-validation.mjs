@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-export const voices=Object.freeze({heart:{label:'Heart · professional voice',default:true},michael:{label:'Michael · stock narrator',default:false},mike60s:{label:'Mike in the 60s · ElevenLabs',default:false}});
+export const voices=Object.freeze({heart:{label:'Heart · professional voice',default:true},michael:{label:'Michael · stock narrator',default:false},mike60s:{label:'Mike',default:false}});
 export const audioLimit=40_000_000;
 const fail=message=>Object.assign(new Error(message),{status:400});
 export const checksum=buffer=>createHash('sha256').update(buffer).digest('hex');

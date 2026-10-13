@@ -1,0 +1,88 @@
+{
+  "id": "cnerd",
+  "name": "CNERD AI",
+  "environment": "production",
+  "version": "1.6.15",
+  "publicOrigin": "https://cnerd.ai",
+  "basePath": "/blog",
+  "port": 4310,
+  "defaultAuthor": {
+    "type": "Person",
+    "name": "Michael Kintner"
+  },
+  "publisher": {
+    "type": "Organization",
+    "name": "CNERD AI"
+  },
+  "description": "Research, field notes, prompts, and practical workflows for people building useful things with AI.",
+  "theme": {
+    "accent": "#205caa",
+    "ink": "#15243a",
+    "paper": "#f8fafc"
+  },
+  "navigation": [
+    {
+      "label": "Home",
+      "href": "/"
+    },
+    {
+      "label": "AI Services",
+      "href": "/business"
+    },
+    {
+      "label": "Articles",
+      "href": "/blog/"
+    }
+  ],
+  "footer": {
+    "text": "CNERD AI \u00b7 Practical work with AI",
+    "links": [
+      {
+        "label": "Contact",
+        "href": "/contact/"
+      },
+      {
+        "label": "Privacy",
+        "href": "/privacy/"
+      },
+      {
+        "label": "Website admin",
+        "href": "/admin"
+      }
+    ]
+  },
+  "voices": [
+    {
+      "id": "heart",
+      "label": "Heart \u00b7 professional stock voice",
+      "kind": "stock",
+      "approved": true,
+      "default": true
+    },
+    {
+      "id": "michael",
+      "label": "Michael \u00b7 stock narrator",
+      "kind": "stock",
+      "approved": true,
+      "default": false
+    },
+    {
+      "id": "mike60s",
+      "label": "Mike",
+      "kind": "external-saved",
+      "approved": true,
+      "default": false
+    }
+  ],
+  "pronunciations": {
+    "CNERD": "see nerd",
+    "Olean": "Olean"
+  },
+  "domainVerified": true,
+  "logo": {
+    "src": "/assets/cnerd-ai-logo-transparent.png",
+    "alt": "CNERD AI",
+    "width": 160,
+    "height": 40
+  }
+}

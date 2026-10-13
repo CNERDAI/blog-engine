@@ -12,6 +12,7 @@ interface Props {
   onOutline: () => void;
   onSocial: () => void;
   onAudio: () => void;
+  onLibrary: () => void;
   onMode: (mode: WorkspaceMode) => void;
 }
 export function WorkspaceActions({
@@ -23,6 +24,7 @@ export function WorkspaceActions({
   onOutline,
   onSocial,
   onAudio,
+  onLibrary,
   onMode,
 }: Props) {
   const { saved, dirty, busy, status } = session;
@@ -78,6 +80,8 @@ export function WorkspaceActions({
         <button onClick={onSettings}>Article settings</button>
         <button onClick={onSocial}>Social</button>
         <button onClick={onAudio}>Audio</button>
+        <button onClick={onLibrary} disabled={session.tab!=='content'} title={session.tab!=='content'?'Switch to Content to insert public images.':'Browse and insert images'}>Media library</button>
+        {engineConfig().brandId==='cnerd'&&<a href="/admin" target="_blank" rel="noopener noreferrer">Website Admin ↗</a>}
         <button
           className="button outline small"
           disabled={busy}

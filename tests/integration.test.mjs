@@ -32,7 +32,7 @@ test('standalone startup has no CNERD website seeds and namespaced authenticatio
   assert.equal((await api('admin/blog',{method:'PUT',body:{},admin:true,headers:{Origin:'https://wrong.example'}})).status,403);
   assert.equal((await request('/api/admin/blog',{admin:true})).status,404);
   assert.match(cookie,/^blog_cnerd_session=/);
-  const health=await value(await api('health'));assert.equal(health.version,'0.1.0');assert.equal(health.brand,'cnerd');
+  const health=await value(await api('health'));assert.equal(health.version,JSON.parse(readFileSync('package.json','utf8')).version);assert.equal(health.brand,'cnerd');
 });
 test('admin saves private training and draft media never leaks',async()=>{
   record=await value(await api('admin/blog/integration-story',{method:'PUT',body:{data:draft(),revision:0},admin:true}));

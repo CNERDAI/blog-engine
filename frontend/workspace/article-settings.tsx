@@ -3,7 +3,7 @@ import React,{useEffect,useState} from "react";
 import {request} from "./use-article-session";
 import type { ArticleSession } from "./use-article-session";
 
-export function ArticleSettings({ session }: { session: ArticleSession }) {
+export function ArticleSettings({ session,onLibrary }: { session: ArticleSession;onLibrary:(mode:'featured'|'social')=>void }) {
   const { data, mark, recover, restore, saved } = session;
   const [images,setImages]=useState<Array<{path:string;name:string}>>([]);
   useEffect(() => {
@@ -41,6 +41,8 @@ export function ArticleSettings({ session }: { session: ArticleSession }) {
         {data.heroImage&&<img src={preview} alt={data.heroAlt || "Selected featured image preview"}/>}
         <label className="check-label"><input type="checkbox" checked={Boolean(data.heroDecorative)} onChange={e => mark({heroDecorative: e.target.checked})} />Hero image is decorative</label>
         <label>Choose a library image<select value={images.some(i=>i.path===data.heroImage)?data.heroImage:''} onChange={e=>mark({heroImage:e.target.value})}><option value="">Select image</option>{images.map(i=><option value={i.path} key={i.path}>{i.name}</option>)}</select></label>
+        <button type="button" onClick={()=>onLibrary('featured')}>Browse all featured images</button>
+        <button type="button" onClick={()=>onLibrary('social')}>Browse social image</button>
         <label>Upload featured image<input type="file" accept="image/png,image/jpeg,image/webp" disabled={session.busy} onChange={e=>{const file=e.target.files?.[0];if(file)session.run(async()=>{const path=await session.upload(file,'src',true);mark({heroImage:path});},'Uploading featured image…');}}/></label>
         <p>Social crops use this focal point. Review the exported images before posting.</p>
         {(['x', 'y'] as const).map(axis => <label key={axis}>{axis === 'x' ? 'Horizontal' : 'Vertical'} crop focus · {Math.round((data.focalPoint?.[axis] ?? .5) * 100)}%<input type="range" min="0" max="100" step="1" value={Math.round((data.focalPoint?.[axis] ?? .5) * 100)} onChange={e => mark({focalPoint: {...(data.focalPoint || {x:.5,y:.5}), [axis]: Number(e.target.value) / 100}})} /></label>)}
