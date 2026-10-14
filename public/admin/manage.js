@@ -1,3 +1,4 @@
+import {articleList} from './article-list.js';
 const config = window.BLOG_ENGINE;
 const base = config.basePath.replace(/\/$/, '');
 const host = document.querySelector('#blog-manager');
@@ -86,19 +87,13 @@ async function list() {
     actions.append(logout);
     host.append(actions);
     if (!articles.length) status('No articles yet. Create a private draft to begin.');
-    const rows = node('ul', '', { class: 'blog-engine-article-list' });
-    for (const article of articles) {
-      const row = node('li', '');
-      const button = node('button', article.title || article.draft?.title || 'Untitled', { type: 'button' });
-      button.onclick = async () => {
-        button.disabled = true;
-        try { await edit(await api('admin/blog/' + encodeURIComponent(article.slug))); }
-        catch (error) { button.disabled = false; status(error.message); }
-      };
-      row.append(button, node('span', `${article.state} · Revision ${article.revision}`));
-      rows.append(row);
-    }
-    host.append(rows);
+    const feedback = status('');
+    host.append(articleList(articles, {api, path, zone: config.timeZone,
+      open: async article => edit(await api('admin/blog/' + encodeURIComponent(article.slug))),
+      refresh: list, report: message => {
+        const current = host.querySelector(':scope > p[role="status"]');
+        (current || feedback).textContent = message;
+      }}));
     const articleId = new URL(location.href).searchParams.get('article');
     if(new URL(location.href).searchParams.get('media')==='1'){await showMediaLibrary();return;}
     if (articleId) {

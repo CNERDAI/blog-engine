@@ -6,6 +6,7 @@ import {brand} from './brand.mjs';
 import {db, hash, passwordMatches} from './db.mjs';
 import {mounted, assetId, articlePath, mountHtml} from './routes.mjs';
 import {allBlogs, getBlog, getBlogById, publishedBlogs, publishedBlog, blogAlias, blogAsset, blogLibrary, blogArticle, normalizeDraft, technicalChecks, adminBlogRoutes} from './blog.mjs';
+import {adminArticles} from './admin-articles.mjs';
 import {importRoutes} from './blog-import.mjs';
 import {shell, articleSchema, sitemap, feed} from './render.mjs';
 import {enrichImageHtml, ensureVariants} from './media.mjs';
@@ -118,10 +119,10 @@ async function producerImport(req, record, job) {
 function capabilities(producer=false) {
   return {brandId: brand.id, name: brand.name, publicOrigin: brand.publicOrigin, basePath: brand.basePath, version, contractVersion: 1, schemaVersion: 2, defaultAuthor: brand.defaultAuthor.name, brand:{id:brand.id,name:brand.name}, operations: producer?['narration:source','narration:import']:['validate', 'draft:create', 'draft:read', 'draft:update', 'asset:upload', 'social:prepare', 'social:export', 'narration:request'], limits: {image: 5000000, video: 18000000, download: 8000000}, nodes: ['paragraph','heading','bulletList','orderedList','taskList','blockquote','codeBlock','image','horizontalRule','cnerdBlock'], socialPresets, narration: narrationCapabilities(), connectedPosting: false};
 }
-function fileResponse(req, res, file, mime, {privateFile = false, downloadName} = {}) {
+function fileResponse(req, res, file, mime, {privateFile = false, downloadName, cacheControl} = {}) {
   if (!existsSync(file) || !statSync(file).isFile()) throw fail('Not found.', 404);
   const size = statSync(file).size;
-  const headers = {'Content-Type': mime, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': privateFile ? 'no-store' : 'public, max-age=3600', 'Accept-Ranges': 'bytes'};
+  const headers = {'Content-Type': mime, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': privateFile ? 'no-store' : cacheControl || 'public, max-age=3600', 'Accept-Ranges': 'bytes'};
   if (privateFile) headers['X-Robots-Tag'] = 'noindex,nofollow';
   if (downloadName) headers['Content-Disposition'] = `attachment; filename="${downloadName.replace(/[^a-zA-Z0-9._-]/g, '_')}"`;
   let start = 0, end = size - 1, code = 200;
@@ -145,7 +146,7 @@ function staticFile(req, res, suffix) {
   if (rel.startsWith('..') || !existsSync(file) || !realpathSync(file).startsWith(realpathSync(publicRoot) + '/')) throw fail('Not found.', 404);
   const mime = {'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.woff2':'font/woff2','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp'}[extname(file)];
   if (!mime) throw fail('Not found.', 404);
-  return fileResponse(req, res, file, mime);
+  return fileResponse(req, res, file, mime, {cacheControl: /^(admin\/|engine\.css$)/.test(suffix) ? 'no-cache' : undefined});
 }
 function page(req, res, options, status = 200) {
   const nonce = randomBytes(16).toString('base64');
@@ -165,6 +166,7 @@ async function handle(req, res) {
   if (path === '/sitemap.xml' || path === mounted('/sitemap.xml')) { res.writeHead(200, {'Content-Type':'application/xml'}); return res.end(sitemap(publishedBlogs())); }
   if (path === mounted('/feed.xml')) { res.writeHead(200, {'Content-Type':'application/rss+xml; charset=utf-8'}); return res.end(feed(publishedBlogs())); }
   if (path === mounted('/admin/manage.js')) return staticFile(req,res,'admin/manage.js');
+  if (path === mounted('/admin/article-list.js')) return staticFile(req,res,'admin/article-list.js');
   if (path.startsWith(mounted('/assets/'))) return staticFile(req, res, decodeURIComponent(path.slice(mounted('/assets/').length)));
   if (path === mounted('/api/health')) return json(res, 200, {ok:true, version, brand:brand.id});
   if (path === mounted('/api/auth')) {
@@ -240,6 +242,7 @@ async function handle(req, res) {
       if(action==='narration'&&req.method==='POST')return json(res,202,requestAudio(record,await readBody(req,16000)));
       throw fail('Method not allowed.',405);
     }
+    if(path === mounted('/api/admin/blog') && req.method === 'GET')return json(res,200,adminArticles());
     const internal=new URL(url);internal.pathname=path.slice(brand.basePath.length);
     if(await adminNarrationRoutes(req,res,internal,{readBody,json,rate,serveFile:(req,res,path,mime)=>fileResponse(req,res,path,mime,{privateFile:true})}))return;
     if(await adminBlogRoutes(req,res,internal,{readBody,readRaw,json,rate}))return;

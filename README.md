@@ -45,6 +45,8 @@ Drafts are saved explicitly. Preview, undo, revision restoration, recoverable in
 
 Published articles include text in their first HTML response, canonical and social metadata, truthful publisher/author schema, breadcrumbs, image dimensions/variants, related links, sitemap and RSS. Meaningful images need descriptions. Private image URLs cannot be published. Uploaded originals remain private; public image delivery uses resized JPEG derivatives with metadata stripped. Local fixture illustrations are demonstration assets, not generated customer artwork.
 
+The admin article list shows publication state, unpublished changes, publication/display and updated dates in the brand's time zone, categories/topics, and saved versus reader-available audio. Search and status filters help find articles. The pencil opens a quick edit for title, author, categories and display date; saving preserves content and private training and does not publish. Deletion requires the exact title and the existing revision/reference safeguards. Automatic scheduled publication is unavailable; a future display date does not schedule an article.
+
 ## AI article creation
 
 Use [.agents/skills/blog-engine/SKILL.md](.agents/skills/blog-engine/SKILL.md) with your AI assistant. Provide a brand, topic, audience/references and actual images. The assistant composes accurate canonical article JSON, then the CLI handles upload, validation, idempotent draft saving, optional social preparation and readback.
